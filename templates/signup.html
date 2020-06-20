@@ -1,12 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
-<form action="" method="POST" novalidate>
+<form action="" method="post" novalidate>
     {{ form.hidden_tag() }}
     <p>
         {{ form.username.label }}
         {{ form.username(size=32) }}
         {% for error in form.username.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>
+        {{ form.email.label }}
+        {{ form.email(size=32) }}
+        {% for error in form.email.errors %}
             <span style="color: red;">[{{ error }}]</span>
         {% endfor %}
     </p>
@@ -18,13 +25,14 @@
         {% endfor %}
     </p>
     <p>
-        {{ form.remember_me.label }}{{ form.remember_me() }}
+        {{ form.password_2.label }}
+        {{ form.password_2(size=32) }}
+        {% for error in form.password_2.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
     </p>
     <p>
         {{ form.submit() }}
-    </p>
-    <p>
-        No account? <a href="{{ url_for('blog.signup') }}">Sign-up</a>
     </p>
 </form>
 {% endblock %}
