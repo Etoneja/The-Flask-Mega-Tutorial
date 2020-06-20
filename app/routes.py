@@ -6,8 +6,9 @@ from flask_login import (
 )
 from flask.blueprints import Blueprint
 from werkzeug.urls import url_parse
+from datetime import datetime
 
-from app.forms import LoginForm, RegistrationForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm
 from app.database import db
 from app.models import User, Post
 
@@ -17,6 +18,13 @@ blog = Blueprint(
     template_folder='../templates',
     static_folder='static'
 )
+
+
+@blog.before_request
+def before_request():
+    if current_user.is_authenticated:
+        current_user.last_seen = datetime.utcnow()
+        db.session.commit()
 
 
 @blog.route("/")
@@ -46,6 +54,7 @@ def login():
 
 
 @blog.route("/logout")
+@login_required
 def logout():
     logout_user()
     return redirect(url_for("blog.login"))
@@ -64,3 +73,30 @@ def signup():
         flash("Congratulation, you are now a registered user!")
         return redirect(url_for("blog.index"))
     return render_template("signup.html", title="sign-up", form=form)
+
+
+@blog.route("/profile/<username>")
+@login_required
+def profile(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    return render_template("profile.html", title="Profile", user=user)
+
+
+@blog.route("/edit_profile", methods=["GET", "POST"])
+@login_required
+def edit_profile():
+    form = EditProfileForm()
+    if request.method == "POST":
+        if form.validate_on_submit():
+            current_user.username = form.username.data
+            current_user.email = form.email.data
+            current_user.about = form.about.data
+            db.session.commit()
+            flash("Your changes have been saved.")
+            return redirect(url_for("blog.profile", username=current_user.username))
+
+    form.username.data = current_user.username
+    form.email.data = current_user.email
+    form.about.data = current_user.about
+
+    return render_template("edit_profile.html", form=form)

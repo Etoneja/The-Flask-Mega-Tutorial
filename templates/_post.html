@@ -1,0 +1,13 @@
+<table>
+    <tr>
+        <td>
+            {% if post.author %}
+            <img src="{{ post.author.get_avatar(24) }}">
+            {% endif %}
+        </td>
+        <td>
+            <a href="{{ url_for('blog.profile', username=post.author.username) }}">{{ post.author.username }}</a> @ {{ post.timestamp }}
+            <br>{{ post.body }}
+        </td>
+    </tr>
+</table>

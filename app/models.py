@@ -1,6 +1,7 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login.mixins import UserMixin
 from datetime import datetime
+import hashlib
 
 from app.database import db
 
@@ -12,6 +13,13 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(128))
     posts = db.relationship("Post", backref="author", lazy="dynamic")
+    about = db.Column(db.String(128))
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow())
+
+    def get_avatar(self, size):
+        email_hash = hashlib.md5(self.email.encode()).hexdigest()
+        avatar_url = f"https://www.gravatar.com/avatar/{email_hash}?d=identicon&s={size}"
+        return avatar_url
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

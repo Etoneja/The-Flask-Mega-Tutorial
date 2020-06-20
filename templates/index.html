@@ -4,9 +4,8 @@
 <h3>Hello, {{ current_user.username }}</h3>
 
 <h2>Posts</h2>
-<ul>
 {% for post in posts %}
-    <li>{{ post.timestamp }} - {{ post.author.username }} - {{ post.body }}</li>
+    {% include "_post.html" %}
 {% endfor %}
-</ul>
+
 {% endblock %}
