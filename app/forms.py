@@ -68,9 +68,9 @@ class EditProfileForm(FlaskForm):
         Email(),
         Length(min=3)
     ])
-    about = TextAreaField("About", validators=
-        [Length(max=200)]
-    )
+    about = TextAreaField("About", validators=[
+        Length(max=200)
+    ])
     submit = SubmitField("Submit changes")
 
     @staticmethod
@@ -84,3 +84,17 @@ class EditProfileForm(FlaskForm):
         e = User.query.filter_by(email=email.data).first()
         if e is not None and e.email != current_user.email:
             raise ValidationError("Email dupe")
+
+
+class EmptyForm(FlaskForm):
+
+    submit = SubmitField("Submit")
+
+
+class NewPostForm(FlaskForm):
+
+    body = TextAreaField("New message", validators=[
+        data_required(),
+        Length(max=200)
+    ])
+    submit = SubmitField("Create new post")

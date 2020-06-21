@@ -13,8 +13,9 @@
 <div class="header">
     <h1>Microblog</h1>
     <ul class="display: table;">
-        <li><a href="{{ url_for('blog.index') }}">Index</a></li>
         {% if current_user.is_authenticated %}
+        <li><a href="{{ url_for('blog.index') }}">Index</a></li>
+        <li><a href="{{ url_for('blog.subscriptions') }}">Subscriptions</a></li>
         <li><a href="{{ url_for('blog.profile', username=current_user.username) }}">Profile</a></li>
         <li><a href="{{ url_for('blog.logout') }}">Logout</a></li>
         {% else %}

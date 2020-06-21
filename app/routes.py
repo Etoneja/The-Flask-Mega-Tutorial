@@ -4,14 +4,16 @@ from flask import (
 from flask_login import (
     current_user, login_user, logout_user, login_required
 )
+from app.forms import (
+    LoginForm, RegistrationForm, EditProfileForm, EmptyForm, NewPostForm
+)
 from flask.blueprints import Blueprint
 from werkzeug.urls import url_parse
 from datetime import datetime
 
-from app.forms import LoginForm, RegistrationForm, EditProfileForm
 from app.database import db
 from app.models import User, Post
-
+from app import app
 
 blog = Blueprint(
     'blog', __name__,
@@ -27,12 +29,51 @@ def before_request():
         db.session.commit()
 
 
-@blog.route("/")
-@blog.route("/index")
+@blog.route("/", methods=["GET", "POST"])
+@blog.route("/index", methods=["GET", "POST"])
 @login_required
 def index():
-    posts = Post.query.all()
-    return render_template("index.html", title="Index", posts=posts)
+    page = request.args.get("page", 1, type=int)
+    posts = Post.query.order_by(Post.timestamp.desc()).paginate(
+        page, app.config["POSTS_PER_PAGE"], False
+    )
+    form = NewPostForm()
+
+    if form.validate_on_submit():
+        p = Post(body=form.body.data, user_id=current_user.id)
+        db.session.add(p)
+        db.session.commit()
+        flash("Post created!")
+        return redirect(url_for("blog.index"))
+    prev_page_url = url_for("blog.index", page=posts.prev_num) if posts.has_prev else None
+    next_page_url = url_for("blog.index", page=posts.next_num) if posts.has_next else None
+    return render_template(
+        "index.html",
+        title="Index",
+        posts=posts.items,
+        form=form,
+        prev_page_url=prev_page_url,
+        next_page_url=next_page_url
+    )
+
+
+@blog.route("/subscriptions", methods=["GET"])
+@login_required
+def subscriptions():
+    page = request.args.get("page", 1, type=int)
+    posts = current_user.followed_posts().paginate(
+        page, app.config["POSTS_PER_PAGE"], False
+    )
+
+    prev_page_url = url_for("blog.subscriptions", page=posts.prev_num) if posts.has_prev else None
+    next_page_url = url_for("blog.subscriptions", page=posts.next_num) if posts.has_next else None
+    return render_template(
+        "index.html",
+        title="Index",
+        posts=posts.items,
+        prev_page_url=prev_page_url,
+        next_page_url=next_page_url
+    )
 
 
 @blog.route("/login", methods=["GET", "POST"])
@@ -79,13 +120,13 @@ def signup():
 @login_required
 def profile(username):
     user = User.query.filter_by(username=username).first_or_404()
-    return render_template("profile.html", title="Profile", user=user)
+    form = EmptyForm()
+    return render_template("profile.html", title="Profile", user=user, form=form)
 
 
 @blog.route("/edit_profile", methods=["GET", "POST"])
 @login_required
 def edit_profile():
-
     form = EditProfileForm()
     if request.method == "POST":
         if form.validate_on_submit():
@@ -101,3 +142,41 @@ def edit_profile():
     form.about.data = current_user.about
 
     return render_template("edit_profile.html", form=form)
+
+
+@blog.route("/follow/<username>", methods=["POST"])
+@login_required
+def follow(username):
+    form = EmptyForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=username).first()
+        if user is None:
+            flash(f"User {username} not found.")
+            return redirect(url_for("blog.index"))
+        if user == current_user:
+            flash("You can not follow yourself")
+            return redirect(url_for("blog.profile", username=username))
+        current_user.follow(user)
+        db.session.commit()
+        flash(f"Followed {username}!")
+        return redirect(url_for("blog.profile", username=username))
+    return redirect(url_for("blog.index"))
+
+
+@blog.route("/unfollow/<username>", methods=["POST"])
+@login_required
+def unfollow(username):
+    form = EmptyForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=username).first()
+        if user is None:
+            flash(f"User {username} not found.")
+            return redirect(url_for("blog.index"))
+        if user == current_user:
+            flash("You can not unfollow yourself")
+            return redirect(url_for("blog.profile", username=username))
+        current_user.unfollow(user)
+        db.session.commit()
+        flash(f"Unfollowed {username}!")
+        return redirect(url_for("blog.profile", username=username))
+    return redirect(url_for("blog.index"))
